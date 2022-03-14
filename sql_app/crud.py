@@ -4,7 +4,21 @@ from . import models, schemas
 
 
 def get_operations(db: Session):
-    return db.query(models.Operations).all()
+    operations = db.query(models.Operations).all()
+    operations_list = []
+    for operation in operations:
+        operations_list.append({
+            'symbol': operation.symbol,
+            'company_name': operation.company_name,
+            'price': operation.price,
+            'quantity': operation.quantity,
+            'date': operation.date,
+            'profit_loss': operation.profit_loss,
+            'operation': operation.operation,
+            'total_stock_value': operation.total_stock_value
+        })
+    return operations_list
+
 
 
 def get_operation_by_symbol(db: Session, symbol: str):
@@ -15,30 +29,48 @@ def get_operation_by_symbol(db: Session, symbol: str):
 #     return db.query(models.User).offset(skip).limit(limit).all()
 
 
-def trade_symbol(db: Session, symbol: str, quantity: int, isbuy: bool):
-    #check if symbol exists in nasdaq
+def trade_symbol(db: Session, symbol: str, quantity: int, isbuy: bool,nasdaq: dict):
+    #count operations with symbol
+    cant = db.query(models.Operations).filter(models.Operations.symbol == symbol).count()
+    if cant > 0:
+        last_price= db.query(models.Operations).filter(models.Operations.symbol == symbol).order_by(models.Operations.date.desc()).first().price
+    if isbuy == False:
+        if cant - quantity < 0:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Not enough shares")
+        else:
+            cant=cant-quantity      
+            company_name = nasdaq['data']['companyName']
+            price = nasdaq['data']['lastPrice']
+            date = DateTime.now()
+            # calculate profit_loss if is loss will be negative
+            if price < last_price:
+                profit_loss = (last_price - price) / last_price * 100 * quantity * -1
+            else:
+                
+                profit_loss = (price - last_price) / last_price * 100 * quantity
+            
+            total_stock_value = price * quantity
     
-
-    operations_client = get_operation_by_symbol(db, symbol) 
-    if operations_client is None:
-        
-    if isbuy == True:
-        operation = "buy"
+        #add operation
+            operation = models.Operations(symbol=symbol, company_name=company_name, price=price, quantity=quantity, date=date, profit_loss=profit_loss, operation=isbuy, total_stock_value=total_stock_value)
+            db.add(operation)
+            db.commit()
     else:
-        operation = "sell"
+        cant=cant+quantity      
+        company_name = nasdaq['data']['companyName']
+        price = nasdaq['data']['lastPrice']
+        date = DateTime.now()
+        # calculate profit_loss if is loss will be negative
+        if price < last_price:
+            profit_loss = (last_price - price) / last_price * 100 * quantity * -1
+        else:
+            
+            profit_loss = (price - last_price) / last_price * 100 * quantity
         
-    db_trade = models.Operations(symbol=symbol, company_name=operations_client.company_name, price=operations_client.price, quantity=quantity, date=operations_client.date, profit_loss=operations_client.profit_loss, operation=operation, total_stock_value=operations_client.total_stock_value)
-    db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
-    return db_user
-# def get_items(db: Session, skip: int = 0, limit: int = 100):
-#     return db.query(models.Item).offset(skip).limit(limit).all()
-
-
-# def create_user_item(db: Session, item: schemas.ItemCreate, user_id: int):
-#     db_item = models.Item(**item.dict(), owner_id=user_id)
-#     db.add(db_item)
-#     db.commit()
-#     db.refresh(db_item)
-#     return db_item
+        total_stock_value = price * quantity
+    
+        #add operation
+        operation = models.Operations(symbol=symbol, company_name=company_name, price=price, quantity=quantity, date=date, profit_loss=profit_loss, operation=isbuy, total_stock_value=total_stock_value)
+        db.add(operation)
+        db.commit()
+    return operation

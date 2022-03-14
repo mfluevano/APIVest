@@ -10,3 +10,4 @@ class operationBase(BaseModel):
     profit_loss:   float
     operation: str
     total_stock_value: int
+    consecutive: int

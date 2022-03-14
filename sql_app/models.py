@@ -9,14 +9,15 @@ class Operations(Base):
     __tablename__ = "operations"
 
     id = Column(Integer, primary_key=True, index=True)
-    symbol = Column(String, index=True)
-    company_name = Column(String, index=True)
-    price = Column(REAL, index=True)
-    quantity = Column(Integer, index=True)
-    date = Column(String, index=True)
-    profit_loss = Column(REAL, index=True)
-    operation = Column(String, index=True)
-    total_stock_value = Column(REAL, index=True)
+    symbol = Column(String)
+    company_name = Column(String)
+    price = Column(REAL)
+    quantity = Column(Integer)
+    date = Column(String)
+    profit_loss = Column(REAL)
+    operation = Column(String)
+    total_stock_value = Column(REAL)
+    consecutive = Column(Integer)
 
 
 
